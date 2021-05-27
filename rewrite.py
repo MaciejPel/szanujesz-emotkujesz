@@ -22,15 +22,14 @@ async def on_ready():
     await client.change_presence(activity=discord.Streaming(name="PP", url="https://www.twitch.tv/vexler_"))
     
 
-@client.command(aliases=["u"])
-@commands.has_permissions(administrator=True)
-async def uszanowanko(ctx):
+@client.command(pass_context=True, aliases=["u"])
+async def uszanowanko(ctx, title=''):
 
     channel=ctx.channel
     msgs=[]
     used=[]
     result={}
-    e = discord.utils.find(lambda e: e.name == 'pepeyes', client.emojis)
+    pepeyes = discord.utils.find(lambda e: e.name == 'pepeyes', client.emojis)
 
     if 'uszanowanko' not in channel.name:
         return
@@ -45,32 +44,46 @@ async def uszanowanko(ctx):
             if msg.content=='.end':
                 break
             elif len(mention)==1 and mention[0] not in used:
+              member = discord.utils.find(lambda m: m.id == msg.raw_mentions[0], channel.members)
+              if member.bot==False:
                 used.append(mention[0])
                 msgs.append(msg.id)
-                await msg.add_reaction(e)
+                await msg.add_reaction(pepeyes)
 
     for mg in msgs:
-        message = await client.get_channel(channel.id).fetch_message(mg)
-        print(message)
-        for m in message.reactions:
-            if type(m.emoji).__name__=='Emoji':
-                if m.emoji.name=='pepeyes':
-                    isBot = discord.utils.find(lambda m: True if (m.id == message.raw_mentions[0] and m.bot==False) else False, channel.members)
-                    if isBot:
-                        result[message.raw_mentions[0]]=[]
-                        votes=await m.users().flatten()
-                        for v in votes:
-                            if v.bot==False and m.message.author.id !=  message.raw_mentions[0]:
-                                result[message.raw_mentions[0]].append(v.id)
+        try:
+            message = await client.get_channel(channel.id).fetch_message(mg)
+        except:
+            message=False
+        if message:
+            for m in message.reactions:
+              mention=message.raw_mentions[0]
+              if type(m.emoji).__name__=='Emoji':
+                  if m.emoji.name=='pepeyes':
+                      isBot = discord.utils.find(lambda m: True if (m.id == mention and m.bot==False) else False, channel.members)
+                      if isBot:
+                          result[mention]=[]
+                          if message.author.id!=mention:
+                            result[mention].append(message.author.id)
+                          votes=await m.users().flatten()
+                          for v in votes:
+                              if v.bot==False and m.message.author.id !=  mention:
+                                  result[mention].append(v.id)
     
     #ar!member @localnickname give number
     if len(result)>0:
-        final='```'
-        for r in result:
-            if((len(result[r])*10)>00):
-                final+='ar!member '+str(ctx.guild.get_member(r).mention)+' give '+str(len(result[r])*10)+'\n'
-        final+='```'
-        await client.get_channel(channel.id).send(final)
+      embed=discord.Embed(title=title, color=0x4fde8d)
+      embed.set_thumbnail(url="https://emoji.gg/assets/emoji/7529_KEKW.png")
+      # final='```'
+      # content=title+'/n'
+      for r in result:
+          if(len(result[r])>0):
+              # content+='ar!member '+str(ctx.guild.get_member(r).mention)+' give '+str(len(result[r])*10)+'\n'
+              embed.add_field(name='ar!member '+str(ctx.guild.get_member(r).mention)+' give '+str(len(result[r])*10))
+      # if content:
+        # final+=content+'```'
+      embed.set_footer(text="Pozdrawiam Pawlaka")
+      await client.get_channel(channel.id).send(embed=embed)
     else:
         return
 
@@ -79,8 +92,8 @@ async def uszanowanko(ctx):
 async def exit(ctx):
     await client.close()
 
-@client.command(aliases=["d"])
-async def delete(ctx, amount=5):
+@client.command(aliases=["c"])
+async def clear(ctx, amount=5):
     await ctx.channel.purge(limit=amount+1)
 
 @client.event
@@ -93,7 +106,7 @@ async def on_command_error(ctx, error):
         return
     raise error
 
-client.run(os.getenv('TOKEN'))
+client.run(os.environ['TOKEN'])
 
 # useFull stuff
 # print(member.display_name, member.name, member.nick, member.desktop_status, member.raw_status, member.web_status, member.bot, member.activity, member.activities,) membersInfo
